@@ -144,8 +144,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDBReady, setIsDBReady] = useState(false);
   const [customerAuth, setCustomerAuth] = useState(() => {
-    const saved = localStorage.getItem("grillMastersAuth");
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem("grillMastersAuth");
+      return saved && saved !== "undefined" ? JSON.parse(saved) : null;
+    } catch { return null; }
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authForm, setAuthForm] = useState({ name: "", table: "" });
@@ -184,12 +186,14 @@ export default function App() {
       } catch (err) {
         console.error("Supabase Database Connect Error:", err.message);
         // Fallback to offline local storage data if tables don't exist yet
-        const saved = localStorage.getItem("grillMastersDB");
-        if (saved) {
-          const db = JSON.parse(saved);
-          if (db.menu) setMenu(db.menu);
-          if (db.orders) setOrders(db.orders);
-        }
+        try {
+          const saved = localStorage.getItem("grillMastersDB");
+          if (saved && saved !== "undefined") {
+            const db = JSON.parse(saved);
+            if (db && db.menu) setMenu(db.menu);
+            if (db && db.orders) setOrders(db.orders);
+          }
+        } catch (e) { console.error(e); }
         setIsDBReady(true);
       }
     };
@@ -406,9 +410,9 @@ function UserApp({ menu, cart, cartCount, cartTotal, deliveryFree, categories, a
         {/* 3D Canvas */}
         <div style={{ width: "100%", maxWidth: 500, height: 400, zIndex: 10, cursor: "grab" }}>
           <Canvas camera={{ position: [0, 1, 5], fov: 45 }}>
-            <ambientLight intensity={0.7} />
-            <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-            <Environment preset="city" />
+            <ambientLight intensity={0.9} />
+            <directionalLight position={[5, 5, 5]} intensity={1.5} />
+            <directionalLight position={[-5, 5, -5]} intensity={0.5} color="#ffd700" />
 
             <PresentationControls
               global
