@@ -96,7 +96,7 @@ class ErrorBoundary extends React.Component {
 
   static getDerivedStateFromError(error) {
     // Update state so the next render will show the fallback UI.
-    return { hasError: true };
+    return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
@@ -110,10 +110,15 @@ class ErrorBoundary extends React.Component {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#1a1a1a', color: 'white', fontFamily: "'DM Sans', sans-serif", padding: 20 }}>
           <h1 style={{ color: '#e63232', fontSize: 48, marginBottom: 20 }}>Oops! Something went wrong.</h1>
-          <p style={{ fontSize: 18, marginBottom: 30, textAlign: 'center', maxWidth: 600 }}>
+          <p style={{ fontSize: 18, marginBottom: 10, textAlign: 'center', maxWidth: 600 }}>
             We're sorry, but there was an unexpected error loading the application.
-            Please try refreshing the page or contact support if the issue persists.
+            Please send this exact error message to the developer:
           </p>
+          <pre style={{ background: '#000', padding: 20, borderRadius: 8, maxWidth: "90%", overflow: "auto", color: "#f87171", fontSize: 12, marginBottom: 30, textAlign: "left" }}>
+            {this.state.error?.toString()}
+            {"\n\n"}
+            {this.state.error?.stack}
+          </pre>
           <button
             onClick={() => window.location.reload()}
             style={{ padding: '12px 24px', background: '#e63232', color: 'white', border: 'none', borderRadius: 50, fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 16, cursor: 'pointer', transition: 'all 0.2s' }}
@@ -366,7 +371,7 @@ export default function App() {
 // ============================================================
 // USER APP
 // ============================================================
-function UserApp({ menu, cart, cartCount, cartTotal, deliveryFree, categories, activeCategory, setActiveCategory, searchQuery, setSearchQuery, addToCart, showCart, setShowCart, updateQty, removeFromCart, placeOrder }) {
+function UserApp({ menu, cart, cartCount, cartTotal, deliveryFree, categories, activeCategory, setActiveCategory, searchQuery, setSearchQuery, addToCart, showCart, setShowCart, updateQty, removeFromCart, placeOrder, customerAuth, setCustomerAuth, showAuthModal, setShowAuthModal, authForm, setAuthForm, handleAuthSubmit }) {
   return (
     <div style={{ background: "#0a0a0a", minHeight: "100vh" }}>
       {/* Navbar */}
