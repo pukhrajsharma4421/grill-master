@@ -143,6 +143,12 @@ export default function App() {
   const [notification, setNotification] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDBReady, setIsDBReady] = useState(false);
+  const [customerAuth, setCustomerAuth] = useState(() => {
+    const saved = localStorage.getItem("grillMastersAuth");
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authForm, setAuthForm] = useState({ name: "", table: "" });
 
   // Fetch from Supabase
   useEffect(() => {
@@ -216,14 +222,30 @@ export default function App() {
   const cartCount = cart.reduce((sum, c) => sum + c.qty, 0);
   const deliveryFree = cartTotal >= 399;
 
-  const placeOrder = async () => {
+  const handleAuthSubmit = (e) => {
+    e.preventDefault();
+    if (!authForm.name || !authForm.table) return showNotification("⚠️ Please fill all fields");
+    setCustomerAuth(authForm);
+    localStorage.setItem("grillMastersAuth", JSON.stringify(authForm));
+    setShowAuthModal(false);
+    placeOrder(authForm); // Pass the new auth directly so it doesn't wait for state flush
+  };
+
+  const placeOrder = async (overrideAuth = null) => {
     if (cart.length === 0) return;
+
+    const activeAuth = overrideAuth || customerAuth;
+    if (!activeAuth) {
+      setShowAuthModal(true);
+      return;
+    }
+
     const orderId = `GM-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
     const newOrder = {
       id: orderId,
       items: cart.map(c => ({ name: c.name, qty: c.qty, price: c.price })),
       total: cartTotal + (deliveryFree ? 0 : 40),
-      customer: "You",
+      customer: `${activeAuth.name} (T-${activeAuth.table})`,
       status: "Pending",
       time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     };
@@ -323,7 +345,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={
             <ErrorBoundary>
-              <UserApp menu={filteredMenu} cart={cart} cartCount={cartCount} cartTotal={cartTotal} deliveryFree={deliveryFree} categories={categories} activeCategory={activeCategory} setActiveCategory={setActiveCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} showCart={showCart} setShowCart={setShowCart} updateQty={updateQty} removeFromCart={removeFromCart} placeOrder={placeOrder} />
+              <UserApp menu={filteredMenu} cart={cart} cartCount={cartCount} cartTotal={cartTotal} deliveryFree={deliveryFree} categories={categories} activeCategory={activeCategory} setActiveCategory={setActiveCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} showCart={showCart} setShowCart={setShowCart} updateQty={updateQty} removeFromCart={removeFromCart} placeOrder={placeOrder} customerAuth={customerAuth} setCustomerAuth={setCustomerAuth} showAuthModal={showAuthModal} setShowAuthModal={setShowAuthModal} authForm={authForm} setAuthForm={setAuthForm} handleAuthSubmit={handleAuthSubmit} />
             </ErrorBoundary>
           } />
           <Route path="/admin" element={
@@ -485,10 +507,51 @@ function UserApp({ menu, cart, cartCount, cartTotal, deliveryFree, categories, a
                 <span style={{ color: "#666", fontFamily: "'DM Sans', sans-serif" }}>Delivery</span>
                 <span style={{ color: deliveryFree ? "#22c55e" : "#e63232", fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}>{deliveryFree ? "FREE 🎉" : "₹40"}</span>
               </div>
-              <button onClick={placeOrder} style={{ width: "100%", background: "#e63232", border: "none", borderRadius: 12, padding: 16, color: "white", fontSize: 22, letterSpacing: 2, cursor: "pointer", fontFamily: "'Bebas Neue', sans-serif" }}>
+              <button onClick={() => placeOrder()} style={{ width: "100%", background: "#e63232", border: "none", borderRadius: 12, padding: 16, color: "white", fontSize: 22, letterSpacing: 2, cursor: "pointer", fontFamily: "'Bebas Neue', sans-serif" }}>
                 PLACE ORDER · ₹{cart.reduce((s, c) => s + c.price * c.qty, 0) + (deliveryFree ? 0 : 40)}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Auth Modal (Table App) */}
+      {showAuthModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }} onClick={() => setShowAuthModal(false)} />
+          <div className="bounce-in" style={{ position: "relative", background: "rgba(20,20,20,0.9)", border: "1px solid #333", borderRadius: 24, padding: 32, width: "90%", maxWidth: 400, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
+            <h2 style={{ color: "white", fontSize: 32, letterSpacing: 2, marginBottom: 8, textAlign: "center" }}>TABLE DETAILS</h2>
+            <p style={{ color: "#888", fontFamily: "'DM Sans', sans-serif", fontSize: 13, textAlign: "center", marginBottom: 24 }}>Please enter your name and table number so we can serve you.</p>
+
+            <form onSubmit={handleAuthSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <label style={{ color: "#ccc", fontFamily: "'DM Sans', sans-serif", fontSize: 12, marginBottom: 6, display: "block" }}>Your Name</label>
+                <input
+                  autoFocus
+                  placeholder="e.g. Rahul Sharma"
+                  value={authForm.name}
+                  onChange={e => setAuthForm(prev => ({ ...prev, name: e.target.value }))}
+                  style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 12, padding: "12px 16px", color: "white", fontFamily: "'DM Sans', sans-serif", fontSize: 14, outline: "none", transition: "border-color 0.2s" }}
+                  onFocus={e => e.target.style.borderColor = "#e63232"}
+                  onBlur={e => e.target.style.borderColor = "#333"}
+                />
+              </div>
+              <div>
+                <label style={{ color: "#ccc", fontFamily: "'DM Sans', sans-serif", fontSize: 12, marginBottom: 6, display: "block" }}>Table Number</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 12"
+                  value={authForm.table}
+                  onChange={e => setAuthForm(prev => ({ ...prev, table: e.target.value }))}
+                  style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 12, padding: "12px 16px", color: "white", fontFamily: "'DM Sans', sans-serif", fontSize: 14, outline: "none", transition: "border-color 0.2s" }}
+                  onFocus={e => e.target.style.borderColor = "#e63232"}
+                  onBlur={e => e.target.style.borderColor = "#333"}
+                />
+              </div>
+              <button type="submit" style={{ marginTop: 8, background: "#e63232", border: "none", borderRadius: 12, padding: "14px", color: "white", fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 16, cursor: "pointer", transition: "transform 0.1s" }} onMouseDown={e => e.target.style.transform = "scale(0.98)"} onMouseUp={e => e.target.style.transform = "scale(1)"}>
+                Confirm & Order
+              </button>
+            </form>
           </div>
         </div>
       )}
