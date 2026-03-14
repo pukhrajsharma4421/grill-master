@@ -4,92 +4,34 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Float, Sparkles, ContactShadows, Environment, PresentationControls } from "@react-three/drei";
 
 // ============================================================
-// SUPER DATABASE (In-Memory, Supabase-style)
+// SUPABASE BACKEND CONNECTION
 // ============================================================
-const createDatabase = () => {
-  const defaultDb = {
-    menu: [
-      { id: 1, name: "Masala Crisp Burger", price: 89, category: "Burgers", emoji: "🍔", description: "Crispy patty with house masala blend & pickled onions", available: true, rating: 4.5, orders: 142 },
-      { id: 2, name: "Peri Peri Paneer Burger", price: 109, category: "Burgers", emoji: "🌶️", description: "Grilled paneer with fiery peri peri sauce", available: true, rating: 4.7, orders: 98 },
-      { id: 3, name: "Veg Giga Bite", price: 139, category: "Burgers", emoji: "🥬", description: "Double patty loaded veggie tower burger", available: true, rating: 4.3, orders: 76 },
-      { id: 4, name: "Aloo Tikki Smash Burger", price: 99, category: "Burgers", emoji: "🥔", description: "Classic smashed aloo tikki with mint chutney", available: true, rating: 4.6, orders: 203 },
-      { id: 5, name: "Paneer Tikka Sandwich", price: 179, category: "Sandwiches", emoji: "🥪", description: "Grilled paneer tikka in toasted ciabatta", available: true, rating: 4.4, orders: 89 },
-      { id: 6, name: "Bombay Masala Sandwich", price: 89, category: "Sandwiches", emoji: "🌿", description: "Street-style pressed with green chutney", available: true, rating: 4.8, orders: 312 },
-      { id: 7, name: "Club Sandwich", price: 149, category: "Sandwiches", emoji: "🥙", description: "Triple-decker with veggies & house sauce", available: true, rating: 4.2, orders: 67 },
-      { id: 8, name: "Margherita Pizza", price: 199, category: "Pizzas", emoji: "🍕", description: "Fresh mozzarella, basil, San Marzano tomatoes", available: true, rating: 4.5, orders: 155 },
-      { id: 9, name: "Peri Peri Veg Pizza", price: 229, category: "Pizzas", emoji: "🌶️", description: "Loaded with peppers, olives, peri peri drizzle", available: true, rating: 4.6, orders: 118 },
-      { id: 10, name: "Paneer Makhani Pizza", price: 249, category: "Pizzas", emoji: "🧀", description: "Rich makhani base with chargrilled paneer", available: true, rating: 4.9, orders: 201 },
-      { id: 11, name: "Veg Hakka Noodles", price: 129, category: "Noodles", emoji: "🍜", description: "Wok-tossed with fresh vegetables & soy", available: true, rating: 4.3, orders: 94 },
-      { id: 12, name: "Schezwan Noodles", price: 149, category: "Noodles", emoji: "🔥", description: "Extra spicy schezwan with bell peppers", available: true, rating: 4.7, orders: 178 },
-      { id: 13, name: "Super Saver Meal for 2", price: 445, category: "Combos", emoji: "🎉", description: "2 Burgers + 2 Fries + 2 Drinks — Best Value!", available: true, rating: 4.8, orders: 234 },
-      { id: 14, name: "Single Meal Deal", price: 249, category: "Combos", emoji: "⭐", description: "1 Burger + Fries + Drink + Dessert", available: true, rating: 4.6, orders: 187 },
-      { id: 15, name: "Chocolate Shakespeare", price: 89, category: "Shakespeares", emoji: "🍫", description: "Rich Belgian chocolate thick shake", available: true, rating: 4.9, orders: 445 },
-      { id: 16, name: "Mango Shakespeare", price: 79, category: "Shakespeares", emoji: "🥭", description: "Fresh Alphonso mango blended shake", available: true, rating: 4.8, orders: 389 },
-      { id: 17, name: "Oreo Shakespeare", price: 99, category: "Shakespeares", emoji: "🍪", description: "Crushed Oreo blended with vanilla ice cream", available: true, rating: 4.7, orders: 298 },
-      { id: 18, name: "Peri Peri Fries", price: 79, category: "Sides", emoji: "🍟", description: "Crispy fries tossed in signature peri peri", available: true, rating: 4.8, orders: 567 },
-    ],
-    orders: [
-      { id: "GM-001", items: [{ name: "Masala Crisp Burger", qty: 2, price: 89 }, { name: "Peri Peri Fries", qty: 1, price: 79 }], total: 257, status: "Preparing", time: "12:32 PM", customer: "Rahul S." },
-      { id: "GM-002", items: [{ name: "Super Saver Meal for 2", qty: 1, price: 445 }], total: 445, status: "Ready", time: "12:28 PM", customer: "Priya M." },
-      { id: "GM-003", items: [{ name: "Paneer Makhani Pizza", qty: 1, price: 249 }, { name: "Chocolate Shakespeare", qty: 2, price: 89 }], total: 427, status: "Pending", time: "12:40 PM", customer: "Arjun K." },
-    ],
-    nextId: 19,
-    nextOrderId: 4,
-  };
+import { createClient } from "@supabase/supabase-js";
 
-  const saved = localStorage.getItem("grillMastersDB");
-  let db = saved ? JSON.parse(saved) : defaultDb;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://xalynsthwaxhvsqzzhec.supabase.co";
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_EmnCVm5es74a8IxBpwiy3w_u1AD3gQF";
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const saveToLocal = () => {
-    localStorage.setItem("grillMastersDB", JSON.stringify(db));
-  };
-
-  return {
-    // SELECT
-    from: (table) => ({
-      select: () => ({ data: [...db[table]] }),
-      eq: (field, val) => ({ data: db[table].filter(r => r[field] == val) }),
-    }),
-    // INSERT
-    insert: (table, record) => {
-      const newRecord = { ...record, id: db.nextId++ };
-      db[table].push(newRecord);
-      saveToLocal();
-      return { data: newRecord, error: null };
-    },
-    // UPDATE
-    update: (table, id, updates) => {
-      db[table] = db[table].map(r => r.id == id ? { ...r, ...updates } : r);
-      saveToLocal();
-      return { error: null };
-    },
-    // DELETE
-    delete: (table, id) => {
-      db[table] = db[table].filter(r => r.id != id);
-      saveToLocal();
-      return { error: null };
-    },
-    // ORDER INSERT
-    insertOrder: (orderData) => {
-      const order = { ...orderData, id: `GM-00${db.nextOrderId++}`, status: "Pending", time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) };
-      db.orders.push(order);
-      saveToLocal();
-      return { data: order };
-    },
-    updateOrderStatus: (id, status) => {
-      db.orders = db.orders.map(o => o.id === id ? { ...o, status } : o);
-      saveToLocal();
-    },
-    getStats: () => ({
-      totalOrders: db.orders.length,
-      totalRevenue: db.orders.reduce((sum, o) => sum + o.total, 0),
-      pendingOrders: db.orders.filter(o => o.status === "Pending").length,
-      menuItems: db.menu.length,
-    }),
-  };
-};
-
-const DB = createDatabase();
+const defaultMenu = [
+  { id: 1, name: "Masala Crisp Burger", price: 89, category: "Burgers", emoji: "🍔", description: "Crispy patty with house masala blend & pickled onions", available: true, rating: 4.5, orders: 142 },
+  { id: 2, name: "Peri Peri Paneer Burger", price: 109, category: "Burgers", emoji: "🌶️", description: "Grilled paneer with fiery peri peri sauce", available: true, rating: 4.7, orders: 98 },
+  { id: 3, name: "Veg Giga Bite", price: 139, category: "Burgers", emoji: "🥬", description: "Double patty loaded veggie tower burger", available: true, rating: 4.3, orders: 76 },
+  { id: 4, name: "Aloo Tikki Smash Burger", price: 99, category: "Burgers", emoji: "🥔", description: "Classic smashed aloo tikki with mint chutney", available: true, rating: 4.6, orders: 203 },
+  { id: 5, name: "Paneer Tikka Sandwich", price: 179, category: "Sandwiches", emoji: "🥪", description: "Grilled paneer tikka in toasted ciabatta", available: true, rating: 4.4, orders: 89 },
+  { id: 6, name: "Bombay Masala Sandwich", price: 89, category: "Sandwiches", emoji: "🌿", description: "Street-style pressed with green chutney", available: true, rating: 4.8, orders: 312 },
+  { id: 7, name: "Club Sandwich", price: 149, category: "Sandwiches", emoji: "🥙", description: "Triple-decker with veggies & house sauce", available: true, rating: 4.2, orders: 67 },
+  { id: 8, name: "Margherita Pizza", price: 199, category: "Pizzas", emoji: "🍕", description: "Fresh mozzarella, basil, San Marzano tomatoes", available: true, rating: 4.5, orders: 155 },
+  { id: 9, name: "Peri Peri Veg Pizza", price: 229, category: "Pizzas", emoji: "🌶️", description: "Loaded with peppers, olives, peri peri drizzle", available: true, rating: 4.6, orders: 118 },
+  { id: 10, name: "Paneer Makhani Pizza", price: 249, category: "Pizzas", emoji: "🧀", description: "Rich makhani base with chargrilled paneer", available: true, rating: 4.9, orders: 201 },
+  { id: 11, name: "Veg Hakka Noodles", price: 129, category: "Noodles", emoji: "🍜", description: "Wok-tossed with fresh vegetables & soy", available: true, rating: 4.3, orders: 94 },
+  { id: 12, name: "Schezwan Noodles", price: 149, category: "Noodles", emoji: "🔥", description: "Extra spicy schezwan with bell peppers", available: true, rating: 4.7, orders: 178 },
+  { id: 13, name: "Super Saver Meal for 2", price: 445, category: "Combos", emoji: "🎉", description: "2 Burgers + 2 Fries + 2 Drinks — Best Value!", available: true, rating: 4.8, orders: 234 },
+  { id: 14, name: "Single Meal Deal", price: 249, category: "Combos", emoji: "⭐", description: "1 Burger + Fries + Drink + Dessert", available: true, rating: 4.6, orders: 187 },
+  { id: 15, name: "Chocolate Shakespeare", price: 89, category: "Shakespeares", emoji: "🍫", description: "Rich Belgian chocolate thick shake", available: true, rating: 4.9, orders: 445 },
+  { id: 16, name: "Mango Shakespeare", price: 79, category: "Shakespeares", emoji: "🥭", description: "Fresh Alphonso mango blended shake", available: true, rating: 4.8, orders: 389 },
+  { id: 17, name: "Oreo Shakespeare", price: 99, category: "Shakespeares", emoji: "🍪", description: "Crushed Oreo blended with vanilla ice cream", available: true, rating: 4.7, orders: 298 },
+  { id: 18, name: "Peri Peri Fries", price: 79, category: "Sides", emoji: "🍟", description: "Crispy fries tossed in signature peri peri", available: true, rating: 4.8, orders: 567 },
+];
 
 // ============================================================
 // 3D BURGER MODEL (Advanced Procedural)
@@ -191,8 +133,8 @@ class ErrorBoundary extends React.Component {
 // ============================================================
 export default function App() {
   const [cart, setCart] = useState([]);
-  const [orders, setOrders] = useState(DB.from("orders").select().data);
-  const [menu, setMenu] = useState(DB.from("menu").select().data);
+  const [orders, setOrders] = useState([]);
+  const [menu, setMenu] = useState(defaultMenu);
   const [activeCategory, setActiveCategory] = useState("All");
   const [showCart, setShowCart] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -200,6 +142,53 @@ export default function App() {
   const [editingPrice, setEditingPrice] = useState({});
   const [notification, setNotification] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDBReady, setIsDBReady] = useState(false);
+
+  // Fetch from Supabase
+  useEffect(() => {
+    const fetchDatabase = async () => {
+      try {
+        const { data: menuData, error: menuErr } = await supabase.from('menu').select('*').order('id');
+        const { data: orderData, error: orderErr } = await supabase.from('orders').select('*').order('id', { ascending: false });
+
+        if (menuErr) throw menuErr;
+
+        if (menuData && menuData.length > 0) {
+          setMenu(menuData);
+        } else {
+          console.warn("Table 'menu' is empty. Seeding with default data...");
+          // Try to seed automatically
+          await supabase.from('menu').insert(defaultMenu.map(m => {
+            const copy = { ...m };
+            delete copy.id; // Let Postgres handle ID
+            return m;
+          }).slice(0, 18));
+          setMenu(defaultMenu);
+        }
+
+        if (orderData) {
+          // Parse JSONB if it comes as string
+          const parsedOrders = orderData.map(o => ({
+            ...o,
+            items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items
+          }));
+          setOrders(parsedOrders);
+        }
+        setIsDBReady(true);
+      } catch (err) {
+        console.error("Supabase Database Connect Error:", err.message);
+        // Fallback to offline local storage data if tables don't exist yet
+        const saved = localStorage.getItem("grillMastersDB");
+        if (saved) {
+          const db = JSON.parse(saved);
+          if (db.menu) setMenu(db.menu);
+          if (db.orders) setOrders(db.orders);
+        }
+        setIsDBReady(true);
+      }
+    };
+    fetchDatabase();
+  }, []);
 
   const categories = ["All", ...new Set(menu.map(i => i.category))];
 
@@ -227,34 +216,72 @@ export default function App() {
   const cartCount = cart.reduce((sum, c) => sum + c.qty, 0);
   const deliveryFree = cartTotal >= 399;
 
-  const placeOrder = () => {
+  const placeOrder = async () => {
     if (cart.length === 0) return;
-    const { data } = DB.insertOrder({ items: cart.map(c => ({ name: c.name, qty: c.qty, price: c.price })), total: cartTotal, customer: "You" });
-    setOrders(DB.from("orders").select().data);
+    const orderId = `GM-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
+    const newOrder = {
+      id: orderId,
+      items: cart.map(c => ({ name: c.name, qty: c.qty, price: c.price })),
+      total: cartTotal + (deliveryFree ? 0 : 40),
+      customer: "You",
+      status: "Pending",
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    // Optimistic UI update
+    setOrders(prev => [newOrder, ...prev]);
     setCart([]);
     setShowCart(false);
     setOrderPlaced(true);
     setTimeout(() => setOrderPlaced(false), 4000);
+
+    // Save to Remote DB
+    try {
+      await supabase.from('orders').insert([newOrder]);
+    } catch (e) {
+      console.error("Failed to sync order to Supabase");
+    }
   };
 
-  const updateMenuPrice = (id) => {
-    const newPrice = editingPrice[id];
+  const updateMenuPrice = async (id) => {
+    const newPrice = parseInt(editingPrice[id]);
     if (!newPrice) return;
-    DB.update("menu", id, { price: parseInt(newPrice) });
-    setMenu(DB.from("menu").select().data);
+
+    // Optimistic UI update
+    setMenu(prev => prev.map(m => m.id === id ? { ...m, price: newPrice } : m));
     setEditingPrice(prev => { const n = { ...prev }; delete n[id]; return n; });
     showNotification("✅ Price updated!");
+
+    try {
+      await supabase.from('menu').update({ price: newPrice }).eq('id', id);
+    } catch (e) {
+      console.error("Failed to sync price");
+    }
   };
 
-  const toggleAvailability = (id) => {
+  const toggleAvailability = async (id) => {
     const item = menu.find(i => i.id === id);
-    DB.update("menu", id, { available: !item.available });
-    setMenu(DB.from("menu").select().data);
+    const newStatus = !item.available;
+
+    // Optimistic UI update
+    setMenu(prev => prev.map(m => m.id === id ? { ...m, available: newStatus } : m));
+
+    try {
+      await supabase.from('menu').update({ available: newStatus }).eq('id', id);
+    } catch (e) {
+      console.error("Failed to sync availability");
+    }
   };
 
-  const updateOrderStatus = (orderId, status) => {
-    DB.updateOrderStatus(orderId, status);
-    setOrders(DB.from("orders").select().data);
+  const updateOrderStatus = async (orderId, status) => {
+    // Optimistic UI update
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+
+    try {
+      await supabase.from('orders').update({ status }).eq('id', orderId);
+    } catch (e) {
+      console.error("Failed to sync status");
+    }
   };
 
   const showNotification = (msg) => {
@@ -262,7 +289,12 @@ export default function App() {
     setTimeout(() => setNotification(null), 2500);
   };
 
-  const stats = DB.getStats();
+  const stats = {
+    totalOrders: orders.length,
+    totalRevenue: orders.reduce((sum, o) => sum + o.total, 0),
+    pendingOrders: orders.filter(o => o.status === "Pending").length,
+    menuItems: menu.length,
+  };
 
   return (
     <div style={{ fontFamily: "'Bebas Neue', 'Georgia', sans-serif" }}>
