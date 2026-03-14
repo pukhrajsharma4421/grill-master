@@ -7,7 +7,7 @@ import { Float, Sparkles, ContactShadows, Environment, PresentationControls } fr
 // SUPER DATABASE (In-Memory, Supabase-style)
 // ============================================================
 const createDatabase = () => {
-  let db = {
+  const defaultDb = {
     menu: [
       { id: 1, name: "Masala Crisp Burger", price: 89, category: "Burgers", emoji: "🍔", description: "Crispy patty with house masala blend & pickled onions", available: true, rating: 4.5, orders: 142 },
       { id: 2, name: "Peri Peri Paneer Burger", price: 109, category: "Burgers", emoji: "🌶️", description: "Grilled paneer with fiery peri peri sauce", available: true, rating: 4.7, orders: 98 },
@@ -37,6 +37,13 @@ const createDatabase = () => {
     nextOrderId: 4,
   };
 
+  const saved = localStorage.getItem("grillMastersDB");
+  let db = saved ? JSON.parse(saved) : defaultDb;
+
+  const saveToLocal = () => {
+    localStorage.setItem("grillMastersDB", JSON.stringify(db));
+  };
+
   return {
     // SELECT
     from: (table) => ({
@@ -47,26 +54,31 @@ const createDatabase = () => {
     insert: (table, record) => {
       const newRecord = { ...record, id: db.nextId++ };
       db[table].push(newRecord);
+      saveToLocal();
       return { data: newRecord, error: null };
     },
     // UPDATE
     update: (table, id, updates) => {
       db[table] = db[table].map(r => r.id == id ? { ...r, ...updates } : r);
+      saveToLocal();
       return { error: null };
     },
     // DELETE
     delete: (table, id) => {
       db[table] = db[table].filter(r => r.id != id);
+      saveToLocal();
       return { error: null };
     },
     // ORDER INSERT
     insertOrder: (orderData) => {
       const order = { ...orderData, id: `GM-00${db.nextOrderId++}`, status: "Pending", time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) };
       db.orders.push(order);
+      saveToLocal();
       return { data: order };
     },
     updateOrderStatus: (id, status) => {
       db.orders = db.orders.map(o => o.id === id ? { ...o, status } : o);
+      saveToLocal();
     },
     getStats: () => ({
       totalOrders: db.orders.length,
