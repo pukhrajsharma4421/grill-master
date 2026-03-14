@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
+import { BrowserRouter, Routes, Route, Link, useNavigate } from "react-router-dom";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Float, Sparkles, ContactShadows, Environment, PresentationControls } from "@react-three/drei";
 
@@ -177,7 +178,6 @@ class ErrorBoundary extends React.Component {
 // MAIN APP
 // ============================================================
 export default function App() {
-  const [view, setView] = useState("user"); // "user" | "admin"
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState(DB.from("orders").select().data);
   const [menu, setMenu] = useState(DB.from("menu").select().data);
@@ -256,12 +256,6 @@ export default function App() {
     <div style={{ fontFamily: "'Bebas Neue', 'Georgia', sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } body { background: #0a0a0a; } ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #111; } ::-webkit-scrollbar-thumb { background: #e63232; border-radius: 2px; } .fade-in { animation: fadeIn 0.4s ease; } @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } } .slide-in { animation: slideIn 0.35s cubic-bezier(.4,0,.2,1); } @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } } .pulse { animation: pulse 2s infinite; } @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } } .bounce-in { animation: bounceIn 0.5s cubic-bezier(.36,.07,.19,.97); } @keyframes bounceIn { 0% { transform: scale(0.5); opacity:0; } 70% { transform: scale(1.1); } 100% { transform: scale(1); opacity:1; } }`}</style>
 
-      {/* View Toggle */}
-      <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000, display: "flex", gap: 8 }}>
-        <button onClick={() => setView("user")} style={{ padding: "10px 20px", background: view === "user" ? "#e63232" : "#1a1a1a", color: "white", border: "2px solid #e63232", borderRadius: 50, fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>🛒 Customer</button>
-        <button onClick={() => setView("admin")} style={{ padding: "10px 20px", background: view === "admin" ? "#e63232" : "#1a1a1a", color: "white", border: "2px solid #e63232", borderRadius: 50, fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>⚙️ Owner Panel</button>
-      </div>
-
       {/* Notification Toast */}
       {notification && (
         <div className="bounce-in" style={{ position: "fixed", top: 80, left: "50%", transform: "translateX(-50%)", background: "#1a1a1a", border: "1px solid #e63232", color: "white", padding: "12px 24px", borderRadius: 50, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 14, zIndex: 9999, whiteSpace: "nowrap" }}>
@@ -281,15 +275,20 @@ export default function App() {
         </div>
       )}
 
-      {view === "user" ? (
-        <ErrorBoundary>
-          <UserApp menu={filteredMenu} cart={cart} cartCount={cartCount} cartTotal={cartTotal} deliveryFree={deliveryFree} categories={categories} activeCategory={activeCategory} setActiveCategory={setActiveCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} showCart={showCart} setShowCart={setShowCart} updateQty={updateQty} removeFromCart={removeFromCart} placeOrder={placeOrder} />
-        </ErrorBoundary>
-      ) : (
-        <ErrorBoundary>
-          <AdminDashboard menu={menu} orders={orders} stats={stats} adminTab={adminTab} setAdminTab={setAdminTab} editingPrice={editingPrice} setEditingPrice={setEditingPrice} updateMenuPrice={updateMenuPrice} toggleAvailability={toggleAvailability} updateOrderStatus={updateOrderStatus} />
-        </ErrorBoundary>
-      )}
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={
+            <ErrorBoundary>
+              <UserApp menu={filteredMenu} cart={cart} cartCount={cartCount} cartTotal={cartTotal} deliveryFree={deliveryFree} categories={categories} activeCategory={activeCategory} setActiveCategory={setActiveCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} showCart={showCart} setShowCart={setShowCart} updateQty={updateQty} removeFromCart={removeFromCart} placeOrder={placeOrder} />
+            </ErrorBoundary>
+          } />
+          <Route path="/admin" element={
+            <ErrorBoundary>
+              <AdminDashboard menu={menu} orders={orders} stats={stats} adminTab={adminTab} setAdminTab={setAdminTab} editingPrice={editingPrice} setEditingPrice={setEditingPrice} updateMenuPrice={updateMenuPrice} toggleAvailability={toggleAvailability} updateOrderStatus={updateOrderStatus} />
+            </ErrorBoundary>
+          } />
+        </Routes>
+      </BrowserRouter>
     </div>
   );
 }
@@ -449,6 +448,14 @@ function UserApp({ menu, cart, cartCount, cartTotal, deliveryFree, categories, a
           </div>
         </div>
       )}
+
+      {/* Footer */}
+      <footer style={{ background: "#050505", borderTop: "1px solid #1f1f1f", padding: "40px 24px", textAlign: "center" }}>
+        <p style={{ color: "#444", fontFamily: "'DM Sans', sans-serif", fontSize: 13, marginBottom: 12 }}>© 2026 Grill Masters Bikaner. All rights reserved.</p>
+        <Link to="/admin" style={{ color: "#222", textDecoration: "none", fontSize: 10, fontFamily: "'DM Sans', sans-serif", opacity: 0.5, transition: "all 0.2s" }} onMouseOver={e => e.currentTarget.style.color = "#444"} onMouseOut={e => e.currentTarget.style.color = "#222"}>
+          Employee Login
+        </Link>
+      </footer>
     </div>
   );
 }
